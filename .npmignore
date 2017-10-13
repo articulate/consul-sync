@@ -1,0 +1,12 @@
+*.log
+*.md
+.DS_Store
+.eslintrc.js
+.gitignore
+.jshint*
+/.nyc_output
+/docs
+/node_modules
+/src
+/test
+yarn.lock
