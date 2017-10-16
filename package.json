@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@articulate/funky": "^0.0.3",
-    "@articulate/gimme": "^0.0.3",
+    "@articulate/gimme": "^0.0.4",
     "joi": "^11.3.4",
     "ramda": "^0.25.0"
   },

@@ -1,11 +1,11 @@
 const gimme = require('@articulate/gimme')
 const Joi   = require('joi')
 
-const { backoff, convergeP, mapP, validate } = require('@articulate/funky')
+const { backoff, mapP, validate } = require('@articulate/funky')
 
 const {
-  always, compose, composeP, curry, curryN, equals, identity, filter,
-  mergeAll, map, partial, path, prop, replace, tap, unless, zipObj
+  always, assoc, compose, composeP, curry, curryN, equals,
+  mergeAll, map, partial, path, prop, reduce, replace, unless
 } = require('ramda')
 
 const schema = Joi.object({
@@ -13,13 +13,10 @@ const schema = Joi.object({
   uri:      Joi.string().default(process.env.CONSUL_HTTP_ADDR)
 })
 
-const compact = filter(identity)
-
 const mellow = compose(curryN(2), backoff(250, 4))
 
 const check = curry((opts, index) => {
   const { prefixes, uri } = opts
-  console.log('check:', index)
   return Promise.race(map(wait({ index, uri }), prefixes))
     .then(unless(equals(index), sync(opts)))
     .then(check(opts))
@@ -30,21 +27,14 @@ const decode = val =>
 
 const getEnv = mellow(({ uri }, prefix) =>
   gimme({
-    data: { keys: true, recurse: true },
+    data: { consistent: true, recurse: true },
     url: url(uri, prefix)
   }).then(prop('body'))
-    .then(map(replace(prefix, '')))
-    .then(compact)
-    .then(convergeP(zipObj, [
-      identity,
-      mapP(getVal({ prefix, uri }))
-    ]))
+    .then(reduce(parseEnv(prefix), {}))
 )
 
-const getVal = mellow(({ prefix, uri }, key) =>
-  gimme({ url: url(uri, prefix, key) })
-    .then(path([ 'body', 0, 'Value' ]))
-    .then(decode)
+const parseEnv = curry(( prefix, env, { Key, Value }) =>
+  Value === null ? env : assoc(replace(prefix, '', Key), decode(Value), env)
 )
 
 const setEnv = env => {
@@ -68,10 +58,9 @@ const url = (uri, prefix, key='') =>
 
 const wait = mellow(({ index, uri }, prefix) =>
   gimme({
-    data: { index, recurse: true },
+    data: { consistent: true, index, recurse: true },
     url: url(uri, prefix)
-  }).then(tap(console.log))
-    .then(path(['headers', 'x-consul-index']))
+  }).then(path(['headers', 'x-consul-index']))
 )
 
 module.exports = composeP(start, validate(schema))

@@ -16,9 +16,9 @@
     joi "^10.6.0"
     ramda "^0.24.1"
 
-"@articulate/gimme@^0.0.3":
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/@articulate/gimme/-/gimme-0.0.3.tgz#9dd87df76da2650196d251b6f102c2f1a60f0799"
+"@articulate/gimme@^0.0.4":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@articulate/gimme/-/gimme-0.0.4.tgz#0085c02e81ac2ea916d7c23ec5beb3df6116f054"
   dependencies:
     "@articulate/funky" "^0.0.2"
     boom "^5.2.0"
