@@ -1,5 +1,7 @@
-const gimme = require('@articulate/gimme')
-const Joi   = require('joi')
+const { basename } = require('path')
+const debug        = require('debug')('consul-sync')
+const gimme        = require('@articulate/gimme')
+const Joi          = require('joi')
 
 const { backoff, mapP, validate } = require('@articulate/funky')
 
@@ -9,7 +11,7 @@ const {
 } = require('ramda')
 
 const schema = Joi.object({
-  prefixes: Joi.array().items(Joi.string()).single().default([]),
+  prefixes: Joi.array().single().items(Joi.string()).default([]),
   uri:      Joi.string().default(process.env.CONSUL_HTTP_ADDR)
 })
 
@@ -30,15 +32,15 @@ const getEnv = mellow(({ uri }, prefix) =>
     data: { consistent: true, recurse: true },
     url: url(uri, prefix)
   }).then(prop('body'))
-    .then(reduce(parseEnv(prefix), {}))
+    .then(reduce(parseEnv, {}))
 )
 
-const parseEnv = curry(( prefix, env, { Key, Value }) =>
-  Value === null ? env : assoc(replace(prefix, '', Key), decode(Value), env)
-)
+const parseEnv = (env, { Key, Value }) =>
+  Value === null ? env : assoc(basename(Key), decode(Value), env)
 
 const setEnv = env => {
   Object.assign(process.env, env)
+  debug(process.env)
 }
 
 const start = opts =>
