@@ -6,8 +6,8 @@ const Joi          = require('joi')
 const { backoff, mapP, validate } = require('@articulate/funky')
 
 const {
-  always, assoc, compose, composeP, curry, curryN, equals,
-  mergeAll, map, partial, path, prop, reduce, replace, unless
+  always, assoc, compose, composeP, curry, curryN, equals, mergeAll,
+  map, partial, path, pick, pipe, prop, reduce, unless
 } = require('ramda')
 
 const schema = Joi.object({
@@ -35,6 +35,12 @@ const getEnv = mellow(({ uri }, prefix) =>
     .then(reduce(parseEnv, {}))
 )
 
+const logError = pipe(
+  pick(['data', 'message', 'name', 'output', 'stack']),
+  JSON.stringify,
+  console.error
+)
+
 const parseEnv = (env, { Key, Value }) =>
   Value === null ? env : assoc(basename(Key), decode(Value), env)
 
@@ -43,9 +49,16 @@ const setEnv = env => {
   debug(process.env)
 }
 
+const sleep = curry((delay, x) =>
+  new Promise(resolve =>
+    setTimeout(partial(resolve, [ x ]), delay)
+  )
+)
+
 const start = opts =>
   check(opts, null)
-    .catch(console.error)
+    .catch(logError)
+    .then(sleep(5000))
     .then(partial(start, [ opts ]))
 
 const sync = curry((opts, index) =>
