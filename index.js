@@ -68,8 +68,8 @@ const sync = curry((opts, index) =>
     .then(always(index))
 )
 
-const url = (uri, prefix, key='') =>
-  `${uri}/v1/kv/${prefix}${key}`
+const url = (uri, prefix) =>
+  `${uri}/v1/kv/${prefix}`
 
 const wait = mellow(({ index, uri }, prefix) =>
   gimme({
