@@ -1,0 +1,22 @@
+[
+  {
+    "Key": "globals/env_vars/",
+    "Value": null
+  },
+  {
+    "Key": "globals/env_vars/COLOR",
+    "Value": "Ymx1ZQ=="
+  },
+  {
+    "Key": "globals/env_vars/SHA",
+    "Value": "ZDJkZDVkZQ=="
+  },
+  {
+    "Key": "apps/my-app/env_vars/",
+    "Value": null
+  },
+  {
+    "Key": "apps/my-app/env_vars/COLOR",
+    "Value": "cmVk"
+  }
+]
