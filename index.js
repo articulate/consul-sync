@@ -11,8 +11,9 @@ const {
 } = require('ramda')
 
 const schema = Joi.object({
-  prefixes: Joi.array().single().items(Joi.string()).default([]),
-  uri:      Joi.string().default(process.env.CONSUL_HTTP_ADDR)
+  prefixes:   Joi.array().single().items(Joi.string()).default([]),
+  retryAfter: Joi.number().min(0).default(5000),
+  uri:        Joi.string().default(process.env.CONSUL_HTTP_ADDR)
 })
 
 const mellow = compose(curryN(2), backoff(250, 4))
@@ -58,7 +59,7 @@ const sleep = curry((delay, x) =>
 const start = opts =>
   check(opts, null)
     .catch(logError)
-    .then(sleep(5000))
+    .then(sleep(opts.retryAfter))
     .then(partial(start, [ opts ]))
 
 const sync = curry((opts, index) =>

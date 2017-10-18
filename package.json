@@ -6,8 +6,19 @@
   "repository": "git@github.com:articulate/consul-sync.git",
   "author": "articulate",
   "license": "MIT",
+  "nyc": {
+    "check-coverage": true,
+    "lines": 100,
+    "statements": 100,
+    "functions": 100,
+    "branches": 100
+  },
   "scripts": {
-    "lint": "eslint index.js"
+    "coverage": "nyc report --reporter=text-lcov | coveralls",
+    "lint": "eslint index.js test",
+    "test": "mocha --reporter=dot",
+    "test:ci": "yarn run lint && yarn run test:coverage && yarn run coverage",
+    "test:coverage": "nyc yarn run test"
   },
   "dependencies": {
     "@articulate/funky": "^0.0.3",
@@ -17,6 +28,12 @@
     "ramda": "^0.25.0"
   },
   "devDependencies": {
-    "eslint": "^4.8.0"
+    "@articulate/spy": "^0.0.1",
+    "chai": "^4.1.2",
+    "coveralls": "^3.0.0",
+    "eslint": "^4.8.0",
+    "mocha": "^4.0.1",
+    "nock": "^9.0.22",
+    "nyc": "^11.2.1"
   }
 }
