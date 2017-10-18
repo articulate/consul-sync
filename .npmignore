@@ -4,7 +4,10 @@
 .eslintrc.js
 .gitignore
 .jshint*
+.travis.yml
+.yarn*
 /.nyc_output
+/coverage
 /docs
 /node_modules
 /src
