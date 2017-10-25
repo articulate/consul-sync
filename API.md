@@ -10,7 +10,7 @@ Accepts an object of options described below:
 | ---- | ---- | ------- | ----------- |
 | `prefixes` | `[String]` | `[]` | List of key prefixes to sync |
 | `retryAfter` | `Number` | `5000` | Delay between retries in ms |
-| `uri` | `String` | `process.env.CONSUL_HTTP_ADDR` | Consul base uri |
+| `uri` | `String` | `process.env.CONSUL_ADDR` | Consul base uri |
 
 Returns a `Promise` that rejects with an error if the options are invalid.
 
