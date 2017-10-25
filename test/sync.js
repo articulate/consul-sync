@@ -12,7 +12,8 @@ describe('consul-sync', () => {
         'globals/env_vars',
         'apps/my-app/env_vars'
       ],
-      retryAfter: 16
+      retryAfter: 16,
+      uri: consul.uri
     })
 
     setTimeout(done, 250)
