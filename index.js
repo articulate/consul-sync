@@ -13,7 +13,7 @@ const {
 const schema = Joi.object({
   prefixes:   Joi.array().single().items(Joi.string()).default([]),
   retryAfter: Joi.number().min(0).default(5000),
-  uri:        Joi.string().default(process.env.CONSUL_HTTP_ADDR)
+  uri:        Joi.string().default(process.env.CONSUL_ADDR)
 })
 
 const mellow = compose(curryN(2), backoff(250, 4))

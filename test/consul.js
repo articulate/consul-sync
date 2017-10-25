@@ -11,7 +11,7 @@ const {
 const { normalizeBy } = require('@articulate/funky')
 
 const kvRegex = /\/v1\/kv\/([^?]+)/
-process.env.CONSUL_HTTP_ADDR = 'http://consul.io'
+process.env.CONSUL_ADDR = 'http://consul.io'
 
 const emitter = new Emitter()
 
@@ -36,7 +36,7 @@ const getKey = curry((recurse, key) => {
 })
 
 const mockConsul = () =>
-  nock(process.env.CONSUL_HTTP_ADDR)
+  nock(process.env.CONSUL_ADDR)
     .replyContentLength()
     .get(kvRegex)
     .query(true)
