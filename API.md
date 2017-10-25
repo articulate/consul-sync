@@ -24,7 +24,8 @@ if (process.env.NODE_ENV === 'production') {
     prefixes: [
       `global/env_vars`,
       `apps/my-app/env_vars`
-    ]
+    ],
+    uri: `https://${process.env.CONSUL_ADDR}`
   })
 }
 ```
