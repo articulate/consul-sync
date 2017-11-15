@@ -3,12 +3,14 @@ const debug        = require('debug')('consul-sync')
 const gimme        = require('@articulate/gimme')
 const Joi          = require('joi')
 
-const { backoff, mapP, validate } = require('@articulate/funky')
+const { backoff, mapP, reject, validate } = require('@articulate/funky')
 
 const {
-  always, assoc, compose, composeP, curry, curryN, equals, mergeAll,
-  map, partial, path, pick, pipe, prop, reduce, unless
+  always, assoc, compose, composeP, curry, curryN, equals, flip, ifElse,
+  mergeAll, map, partial, path, pathEq, pick, pipe, prop, reduce, unless
 } = require('ramda')
+
+const fiveMin = 300 * 1000
 
 const schema = Joi.object({
   prefixes:   Joi.array().single().items(Joi.string()).default([]),
@@ -34,6 +36,7 @@ const getEnv = mellow(({ uri }, prefix) =>
     url: url(uri, prefix)
   }).then(prop('body'))
     .then(reduce(parseEnv, {}))
+    .catch(notFound(always({})))
 )
 
 const logError = pipe(
@@ -41,6 +44,8 @@ const logError = pipe(
   JSON.stringify,
   console.error
 )
+
+const notFound = flip(ifElse(pathEq(['output', 'statusCode'], 404)))(reject)
 
 const parseEnv = (env, { Key, Value }) =>
   Value === null ? env : assoc(basename(Key), decode(Value), env)
@@ -77,6 +82,7 @@ const wait = mellow(({ index, uri }, prefix) =>
     data: { consistent: true, index, recurse: true },
     url: url(uri, prefix)
   }).then(path(['headers', 'x-consul-index']))
+    .catch(notFound(partial(sleep, [ fiveMin, index ])))
 )
 
 module.exports = composeP(start, validate(schema))

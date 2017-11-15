@@ -16,14 +16,14 @@ Returns a `Promise` that rejects with an error if the options are invalid.
 
 Will begin synchronizing your `process.env` with [KV pairs](https://www.consul.io/api/kv.html) stored in [Consul](https://www.consul.io/).  It long-polls for changes, and when notified it will query and merge all of the env vars stored under the given `prefixes` before assigning them onto the `process.env`.
 
-The merge order for env vars is RTL, such that, in the example below, app-specific vars stored under the prefix `apps/my-app/env_vars` will override global vars stored under the prefix `global/env_vars`.
+The merge order for env vars is RTL, such that, in the example below, app-specific vars stored under the prefix `services/my-app/env_vars` will override global vars stored under the prefix `global/env_vars`.
 
 ```js
 if (process.env.NODE_ENV === 'production') {
   require('@articulate/consul-sync')({
     prefixes: [
       `global/env_vars`,
-      `apps/my-app/env_vars`
+      `services/my-app/env_vars`
     ],
     uri: `https://${process.env.CONSUL_ADDR}`
   })
