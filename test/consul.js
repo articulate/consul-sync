@@ -29,11 +29,13 @@ let waiting = {}
 const getKey = curry((recurse, key) => {
   if (!key) return [ 500, {} ]
   const body = recurse === 'true' ? recurseKeys(key) : [ KV[key] ]
-  return [ 200, body, {
-    'content-type': 'application/json',
-    'x-consul-index': reduce(max, 0, pluck('ModifyIndex', body)).toString()
-  } ]
+  return body.length
+    ? [ 200, body, lastIndex(body) ]
+    : [ 404, { message: 'Not found' }, {} ]
 })
+
+const lastIndex = body =>
+  ({ 'x-consul-index': reduce(max, 0, pluck('ModifyIndex', body)).toString() })
 
 const mockConsul = () =>
   nock(uri)

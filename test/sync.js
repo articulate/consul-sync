@@ -10,7 +10,8 @@ describe('consul-sync', () => {
     require('..')({
       prefixes: [
         'globals/env_vars',
-        'apps/my-app/env_vars'
+        'products/not-found',
+        'services/my-app/env_vars'
       ],
       retryAfter: 16,
       uri: consul.uri
@@ -41,7 +42,7 @@ describe('consul-sync', () => {
 
   describe('when a key is updated in Consul', () => {
     beforeEach(done => {
-      consul.update('apps/my-app/env_vars/COLOR', 'green')
+      consul.update('services/my-app/env_vars/COLOR', 'green')
       setTimeout(done, 250)
     })
 

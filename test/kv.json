@@ -12,11 +12,11 @@
     "Value": "ZDJkZDVkZQ=="
   },
   {
-    "Key": "apps/my-app/env_vars/",
+    "Key": "services/my-app/env_vars/",
     "Value": null
   },
   {
-    "Key": "apps/my-app/env_vars/COLOR",
+    "Key": "services/my-app/env_vars/COLOR",
     "Value": "cmVk"
   }
 ]
