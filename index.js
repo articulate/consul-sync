@@ -18,7 +18,7 @@ const schema = Joi.object({
   uri:        Joi.string().uri({ scheme: [ /https?/ ] })
 })
 
-const mellow = compose(curryN(2), backoff(250, 4))
+const mellow = compose(curryN(2), backoff({ base: 250, tries: 4 }))
 
 const check = curry((opts, index) => {
   const { prefixes, uri } = opts

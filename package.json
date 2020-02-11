@@ -23,7 +23,7 @@
     "test:coverage": "nyc yarn run test"
   },
   "dependencies": {
-    "@articulate/funky": "^0.0.3",
+    "@articulate/funky": "^1.9.x",
     "@articulate/gimme": "^0.0.5",
     "debug": "^3.1.0",
     "joi": "^11.3.4",
