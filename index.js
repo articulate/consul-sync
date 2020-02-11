@@ -32,9 +32,10 @@ const decode = val =>
 
 const getEnv = mellow(({ uri }, prefix) =>
   gimme({
-    data: { consistent: true, recurse: true },
+    query: { consistent: true, recurse: true },
     url: url(uri, prefix)
-  }).then(prop('body'))
+  })
+    .then(prop('body'))
     .then(reduce(parseEnv, {}))
     .catch(notFound(always({})))
 )
@@ -79,7 +80,7 @@ const url = (uri, prefix) =>
 
 const wait = mellow(({ index, uri }, prefix) =>
   gimme({
-    data: { consistent: true, index, recurse: true },
+    query: { consistent: true, index, recurse: true },
     url: url(uri, prefix)
   }).then(path(['headers', 'x-consul-index']))
     .catch(notFound(partial(sleep, [ fiveMin, index ])))
