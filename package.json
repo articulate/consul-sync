@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@articulate/funky": "^1.9.x",
-    "@articulate/gimme": "^1.3.x",
+    "axios": "^0.19.2",
     "debug": "^4.1.x",
     "joi": "^14.x.x",
     "ramda": "^0.25.0"

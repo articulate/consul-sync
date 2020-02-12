@@ -1,6 +1,6 @@
+const axios        = require('axios')
 const { basename } = require('path')
 const debug        = require('debug')('consul-sync')
-const gimme        = require('@articulate/gimme')
 const Joi          = require('joi')
 
 const { backoff, mapP, reject, validate } = require('@articulate/funky')
@@ -31,11 +31,11 @@ const decode = val =>
   new Buffer(val, 'base64').toString('utf8')
 
 const getEnv = mellow(({ uri }, prefix) =>
-  gimme({
-    query: { consistent: true, recurse: true },
-    url: url(uri, prefix)
-  })
-    .then(prop('body'))
+  axios
+    .get(url(uri, prefix), {
+      params: { consistent: true, recurse: true }
+    })
+    .then(prop('data'))
     .then(reduce(parseEnv, {}))
     .catch(notFound(always({})))
 )
@@ -46,7 +46,7 @@ const logError = pipe(
   console.error
 )
 
-const notFound = flip(ifElse(pathEq(['output', 'statusCode'], 404)))(reject)
+const notFound = flip(ifElse(pathEq(['response', 'status'], 404)))(reject)
 
 const parseEnv = (env, { Key, Value }) =>
   Value === null ? env : assoc(basename(Key), decode(Value), env)
@@ -79,10 +79,11 @@ const url = (uri, prefix) =>
   `${uri}/v1/kv/${prefix}`
 
 const wait = mellow(({ index, uri }, prefix) =>
-  gimme({
-    query: { consistent: true, index, recurse: true },
-    url: url(uri, prefix)
-  }).then(path(['headers', 'x-consul-index']))
+  axios
+    .get(url(uri, prefix), {
+      params: { consistent: true, index, recurse: true }
+    })
+    .then(path(['headers', 'x-consul-index']))
     .catch(notFound(partial(sleep, [ fiveMin, index ])))
 )
 
