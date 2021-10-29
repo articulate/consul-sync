@@ -6,11 +6,12 @@ const Joi          = require('joi')
 const { backoff, mapP, reject, validate } = require('@articulate/funky')
 
 const {
-  always, assoc, compose, composeP, curry, curryN, equals, flip, ifElse,
-  mergeAll, map, partial, path, pathEq, pick, pipe, prop, reduce, unless
+  always, apply, assoc, compose, composeP, curry, curryN, equals, flip, ifElse, gt,
+  mergeAll, map, pair, partial, path, pathEq, pick, pipe, prop, reduce, unless, when, tap,
 } = require('ramda')
 
 const fiveMin = 300 * 1000
+const INDEX_BEHIND_MESSAGE = 'Previous index greater then new, resetting back to 0!'
 
 const schema = Joi.object({
   prefixes:   Joi.array().single().items(Joi.string()).default([]),
@@ -45,6 +46,11 @@ const logError = pipe(
   console.error
 )
 
+const logInfo = pipe(
+  JSON.stringify,
+  console.log
+)
+
 const notFound = flip(ifElse(pathEq(['output', 'statusCode'], 404)))(reject)
 
 const parseEnv = (env, { Key, Value }) =>
@@ -74,6 +80,21 @@ const sync = curry((opts, index) =>
     .then(always(index))
 )
 
+const isGreaterThan = curry(
+  compose(
+    tap(greaterThen =>
+      greaterThen &&
+        logInfo({
+          message: INDEX_BEHIND_MESSAGE,
+          package: 'consul-sync',
+        })
+    ),
+    apply(gt),
+    map(parseInt),
+    pair
+  )
+)
+
 const url = (uri, prefix) =>
   `${uri}/v1/kv/${prefix}`
 
@@ -81,8 +102,10 @@ const wait = mellow(({ index, uri }, prefix) =>
   gimme({
     data: { consistent: true, index, recurse: true },
     url: url(uri, prefix)
-  }).then(path(['headers', 'x-consul-index']))
-    .catch(notFound(partial(sleep, [ fiveMin, index ])))
+  })
+    .then(path(['headers', 'x-consul-index']))
+    .then(when(isGreaterThan(index), always(0)))
+    .catch(notFound(partial(sleep, [fiveMin, index])))
 )
 
 module.exports = composeP(start, validate(schema))
