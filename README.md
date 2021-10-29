@@ -9,3 +9,9 @@ Syncs [Consul](https://www.consul.io/) KV pairs to your `process.env`.
 Helps make instant updates to your env vars in memory.
 
 See the [documentation](https://github.com/articulate/consul-sync/blob/master/API.md) for details and examples.
+
+## Using the package locally (rise-com-gateway)
+
+1.  Clone the consul-sync package locally
+1.  Add `- '../consul-sync:/service/node_modules/@articulate/consul-sync'` to `rise-com-gateway/docker-compose.override.yml`
+1.  Run rise-com-gateway as you normally do and it will point to your local copy of `consul-sync`
