@@ -6,8 +6,8 @@ const Joi          = require('joi')
 const { backoff, mapP, reject, validate } = require('@articulate/funky')
 
 const {
-  always, apply, assoc, compose, composeP, curry, curryN, equals, flip, ifElse, gt,
-  mergeAll, map, pair, partial, path, pathEq, pick, pipe, prop, reduce, unless, when, tap,
+  always, apply, assoc, compose, composeP, curry, curryN, equals, flip, gt, ifElse,
+  mergeAll, map, pair, partial, path, pathEq, pick, pipe, prop, reduce, tap, unless, when,
 } = require('ramda')
 
 const fiveMin = 300 * 1000
