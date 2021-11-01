@@ -80,18 +80,18 @@ const sync = curry((opts, index) =>
     .then(always(index))
 )
 
-const isGreaterThan = curry(
-  compose(
+const resetDecreasedIndex = curry(
+  pipe(
+    pair,
+    map(parseInt),
+    apply(gt),
     tap(greaterThen =>
       greaterThen &&
         logInfo({
           message: INDEX_BEHIND_MESSAGE,
           package: 'consul-sync',
         })
-    ),
-    apply(gt),
-    map(parseInt),
-    pair
+    )
   )
 )
 
@@ -104,7 +104,7 @@ const wait = mellow(({ index, uri }, prefix) =>
     url: url(uri, prefix)
   })
     .then(path(['headers', 'x-consul-index']))
-    .then(when(isGreaterThan(index), always(0)))
+    .then(when(resetDecreasedIndex(index), always(0)))
     .catch(notFound(partial(sleep, [fiveMin, index])))
 )
 
