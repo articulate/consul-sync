@@ -1,6 +1,6 @@
 {
   "name": "@articulate/consul-sync",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Consul helper to sync KV to env vars",
   "main": "index.js",
   "repository": "git@github.com:articulate/consul-sync.git",
