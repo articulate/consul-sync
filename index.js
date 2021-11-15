@@ -83,7 +83,7 @@ const sync = curry((opts, index) =>
 const safeGreaterThen = (previousIndex, nextIndex) =>
   parseInt(previousIndex) > parseInt(nextIndex)
 
-const resetDecreasedIndex = curry((previousIndex, nextIndex) => {
+const hasIndexDecreased = curry((previousIndex, nextIndex) => {
   const greaterThen = safeGreaterThen(previousIndex, nextIndex)
   
   if(greaterThen){
@@ -107,7 +107,7 @@ const wait = mellow(({ index, uri }, prefix) =>
     url: url(uri, prefix)
   })
     .then(path(['headers', 'x-consul-index']))
-    .then(when(resetDecreasedIndex(index), always(0)))
+    .then(when(hasIndexDecreased(index), always(0)))
     .catch(notFound(partial(sleep, [fiveMin, index])))
 )
 
