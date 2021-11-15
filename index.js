@@ -6,8 +6,8 @@ const Joi          = require('joi')
 const { backoff, mapP, reject, validate } = require('@articulate/funky')
 
 const {
-  always, apply, assoc, compose, composeP, curry, curryN, equals, flip, gt, ifElse,
-  mergeAll, map, pair, partial, path, pathEq, pick, pipe, prop, reduce, tap, unless, when,
+  always, assoc, compose, composeP, curry, curryN, equals, flip, ifElse,
+  mergeAll, map, partial, path, pathEq, pick, pipe, prop, reduce, unless, when,
 } = require('ramda')
 
 const fiveMin = 300 * 1000
@@ -80,20 +80,23 @@ const sync = curry((opts, index) =>
     .then(always(index))
 )
 
-const resetDecreasedIndex = curry(
-  pipe(
-    pair,
-    map(parseInt),
-    apply(gt),
-    tap(greaterThen =>
-      greaterThen &&
-        logInfo({
-          message: INDEX_BEHIND_MESSAGE,
-          package: 'consul-sync',
-        })
-    )
-  )
-)
+const safeGreaterThen = (previousIndex, nextIndex) =>
+  parseInt(previousIndex) > parseInt(nextIndex)
+
+const hasIndexDecreased = curry((previousIndex, nextIndex) => {
+  const greaterThen = safeGreaterThen(previousIndex, nextIndex)
+  
+  if(greaterThen){
+    logInfo({
+      message: INDEX_BEHIND_MESSAGE,
+      package: 'consul-sync',
+      previousIndex,
+      nextIndex
+    })
+  }
+
+  return greaterThen
+})
 
 const url = (uri, prefix) =>
   `${uri}/v1/kv/${prefix}`
@@ -104,7 +107,7 @@ const wait = mellow(({ index, uri }, prefix) =>
     url: url(uri, prefix)
   })
     .then(path(['headers', 'x-consul-index']))
-    .then(when(resetDecreasedIndex(index), always(0)))
+    .then(when(hasIndexDecreased(index), always(0)))
     .catch(notFound(partial(sleep, [fiveMin, index])))
 )
 
