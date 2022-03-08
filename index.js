@@ -1,114 +1,153 @@
+const _ = require('highland')
 const { basename } = require('path')
-const debug        = require('debug')('consul-sync')
-const gimme        = require('@articulate/gimme')
-const Joi          = require('joi')
-
-const { backoff, mapP, reject, validate } = require('@articulate/funky')
+const { backoff, validate } = require('@articulate/funky')
+const axios = require('axios')
+const debug = require('debug')('consul-sync')
+const Joi = require('joi')
 
 const {
-  always, assoc, compose, composeP, curry, curryN, equals, flip, ifElse,
-  mergeAll, map, partial, path, pathEq, pick, pipe, prop, reduce, unless, when,
+  append,
+  assoc,
+  composeP,
+  map,
+  mergeAll,
+  path,
+  pipe,
+  reduce,
 } = require('ramda')
 
-const fiveMin = 300 * 1000
-const INDEX_BEHIND_MESSAGE = 'Previous index greater then new, resetting back to 0!'
+const BASE_WAIT = 10
+const CONSUL_WAIT = `${BASE_WAIT}m`
+const AXIOS_TIMEOUT = BASE_WAIT * 60 * 1000 + 10000 // 10m + 10s
+
+const logger = {
+  info: pipe(JSON.stringify, console.log),
+  error: pipe(JSON.stringify, console.error),
+}
 
 const schema = Joi.object({
-  prefixes:   Joi.array().single().items(Joi.string()).default([]),
-  retryAfter: Joi.number().min(0).default(5000),
-  uri:        Joi.string().uri({ scheme: [ /https?/ ] })
+  prefixes: Joi.array().single().items(Joi.string()).default([]),
+  uri: Joi.string().uri({ scheme: [ /https?/ ] }),
 })
 
-const mellow = compose(curryN(2), backoff(250, 4))
-
-const check = curry((opts, index) => {
-  const { prefixes, uri } = opts
-  return Promise.race(map(wait({ index, uri }), prefixes))
-    .then(unless(equals(index), sync(opts)))
-    .then(check(opts))
-})
-
-const decode = val =>
-  new Buffer(val, 'base64').toString('utf8')
-
-const getEnv = mellow(({ uri }, prefix) =>
-  gimme({
-    data: { consistent: true, recurse: true },
-    url: url(uri, prefix)
-  }).then(prop('body'))
-    .then(reduce(parseEnv, {}))
-    .catch(notFound(always({})))
-)
-
-const logError = pipe(
-  pick(['data', 'message', 'name', 'output', 'stack']),
-  JSON.stringify,
-  console.error
-)
-
-const logInfo = pipe(
-  JSON.stringify,
-  console.log
-)
-
-const notFound = flip(ifElse(pathEq(['output', 'statusCode'], 404)))(reject)
+const buildUrl = (uri, prefix) => `${uri}/v1/kv/${prefix}`
+const getIndex = path([ 'headers', 'x-consul-index' ])
 
 const parseEnv = (env, { Key, Value }) =>
   Value === null ? env : assoc(basename(Key), decode(Value), env)
 
+const parseEnvs = reduce(parseEnv, {})
+const decode = val => Buffer.from(val, 'base64').toString('utf8')
+
 const setEnv = env => {
   Object.assign(process.env, env)
-  debug(process.env)
+  debug(env)
 }
 
-const sleep = curry((delay, x) =>
-  new Promise(resolve =>
-    setTimeout(partial(resolve, [ x ]), delay)
-  )
-)
+const getNextIndex = (previousIndex, nextIndex) =>
+  parseInt(nextIndex) > parseInt(previousIndex) ? 0 : nextIndex
 
-const start = opts =>
-  check(opts, null)
-    .catch(logError)
-    .then(sleep(opts.retryAfter))
-    .then(partial(start, [ opts ]))
+const hasIndexIncreased = (previousIndex, nextIndex) =>
+  parseInt(nextIndex) > parseIndex(previousIndex)
 
-const sync = curry((opts, index) =>
-  mapP(getEnv(opts), opts.prefixes)
-    .then(mergeAll)
-    .then(setEnv)
-    .then(always(index))
-)
+const fetch = async (uri, prefix, index) => {
+  const prefixUrl = buildUrl(uri, prefix)
 
-const safeGreaterThen = (previousIndex, nextIndex) =>
-  parseInt(previousIndex) > parseInt(nextIndex)
+  const response = await axios.get(prefixUrl, {
+    params: {
+      consistent: true,
+      index,
+      recurse: true,
+      wait: CONSUL_WAIT,
+    },
+    timeout: AXIOS_TIMEOUT
+  })
 
-const hasIndexDecreased = curry((previousIndex, nextIndex) => {
-  const greaterThen = safeGreaterThen(previousIndex, nextIndex)
-  
-  if(greaterThen){
-    logInfo({
-      message: INDEX_BEHIND_MESSAGE,
-      package: 'consul-sync',
-      previousIndex,
-      nextIndex
-    })
+  const { data, request } = response
+
+  return {
+    requestUrl: request.res.responseUrl,
+    data,
+    previousIndex: index,
+    nextIndex: getIndex(response)
+  }
+}
+
+const fetchWithBackoff =  backoff({ tries: 10 }, fetch)
+
+const monitor = uri => prefix => {
+  let index = 0
+
+  return _(async (push, next) => {
+    try {
+      const {
+        data,
+        previousIndex,
+        nextIndex,
+        requestUrl,
+      } = await fetchWithBackoff(uri, prefix, index)
+
+      index = getNextIndex(previousIndex, nextIndex)
+
+      if (hasIndexIncreased(previousIndex, nextIndex)) {
+        logger.info({
+          index,
+          prefix,
+          requestUrl,
+          requestIndex: previousIndex,
+          responseIndex: nextIndex,
+        }, 'Consul syncing. Env changed recieved')
+
+        const envVars = parseEnvs(data)
+        push(null, { envVars, prefix })
+      }
+    } catch (error) {
+      logger.error({ error, info: { index } }, 'Consul syncing error')
+      index = 0
+    }
+
+    next()
+  })
+}
+
+const orderReducer = obj => (acc, key) => {
+  if (!obj[key]) {
+    return acc
   }
 
-  return greaterThen
-})
+  return append(obj[key], acc)
+}
 
-const url = (uri, prefix) =>
-  `${uri}/v1/kv/${prefix}`
+const orderVals = (orderedKeys, obj) =>
+  reduce(orderReducer(obj), [], orderedKeys)
 
-const wait = mellow(({ index, uri }, prefix) =>
-  gimme({
-    data: { consistent: true, index, recurse: true },
-    url: url(uri, prefix)
-  })
-    .then(path(['headers', 'x-consul-index']))
-    .then(when(hasIndexDecreased(index), always(0)))
-    .catch(notFound(partial(sleep, [fiveMin, index])))
-)
+const initializeEnvsCache = () => {
+  const prefixedEnvs = {}
 
-module.exports = composeP(start, validate(schema))
+  return (prefix, env) => {
+    prefixedEnvs[prefix] = env
+    return prefixedEnvs
+  }
+}
+
+const buildEnv = (orderedPrefixes, envCache) => {
+  const orderedEnvs = orderVals(orderedPrefixes, envCache)
+  return mergeAll(orderedEnvs)
+}
+
+const updateEnv = prefixes => {
+  const updateEnvCache = initializeEnvsCache()
+
+  return ({ prefix, envVars }) => {
+    const envCache = updateEnvCache(prefix, envVars)
+    setEnv(buildEnv(prefixes, envCache))
+  }
+}
+
+const consulSync = ({ prefixes, uri }) =>
+  _(map(monitor(uri), prefixes))
+    .merge()
+    .each(updateEnv(prefixes))
+
+module.exports = composeP(consulSync, validate(schema))
+
