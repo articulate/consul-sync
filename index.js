@@ -48,7 +48,7 @@ const getNextIndex = (previousIndex, nextIndex) =>
   parseInt(nextIndex) > parseInt(previousIndex) ? 0 : nextIndex
 
 const hasIndexIncreased = (previousIndex, nextIndex) =>
-  parseInt(nextIndex) > parseIndex(previousIndex)
+  parseInt(nextIndex) > parseInt(previousIndex)
 
 const fetch = async (uri, prefix, index) => {
   const prefixUrl = buildUrl(uri, prefix)
