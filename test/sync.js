@@ -1,5 +1,5 @@
 const { expect } = require('chai')
-const spy        = require('@articulate/spy')
+const spy = require('@articulate/spy')
 
 const consul = require('./consul')
 
@@ -13,7 +13,6 @@ describe('consul-sync', () => {
         'products/not-found',
         'services/my-app/env_vars'
       ],
-      retryAfter: 16,
       uri: consul.uri
     })
 
