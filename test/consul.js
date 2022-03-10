@@ -27,8 +27,14 @@ let KV = merge({}, init)
 let waiting = {}
 
 const getKey = curry((recurse, key) => {
-  if (!key) return [ 500, {} ]
-  const body = recurse === 'true' ? recurseKeys(key) : [ KV[key] ]
+  if (!key) {
+    return [ 500, {} ]
+  }
+
+  const body = recurse === 'true'
+    ? recurseKeys(key)
+    : [ KV[key] ]
+
   return body.length
     ? [ 200, body, lastIndex(body) ]
     : [ 404, { message: 'Not found' }, {} ]
@@ -52,8 +58,9 @@ const readKey = (uri, body, done) => {
 
   const respond = compose(partial(done, [ null ]), getKey(recurse))
 
-  if (!index) respond(key)
-  else {
+  if (!parseInt(index)) {
+    respond(key)
+  } else {
     waiting = assoc(key, true, waiting)
     emitter.once(key, respond)
   }
@@ -79,7 +86,11 @@ exports.connect = mockConsul
 
 exports.disconnect = () => {
   nock.cleanAll()
-  for (let key in waiting) emitter.emit(key, false)
+
+  for (let key in waiting) {
+    emitter.emit(key, false)
+  }
+
   waiting = {}
   emitter.removeAllListeners()
 }

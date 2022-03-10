@@ -45,7 +45,7 @@ const setEnv = env => {
 }
 
 const getNextIndex = (previousIndex, nextIndex) =>
-  parseInt(nextIndex) > parseInt(previousIndex) ? 0 : nextIndex
+  parseInt(previousIndex) > parseInt(nextIndex) ? 0 : nextIndex
 
 const hasIndexIncreased = (previousIndex, nextIndex) =>
   parseInt(nextIndex) > parseInt(previousIndex)
@@ -66,14 +66,14 @@ const fetch = async (uri, prefix, index) => {
   const { data, request } = response
 
   return {
-    requestUrl: request.res.responseUrl,
+    requestUrl: `${uri}${request.path}`,
     data,
     previousIndex: index,
     nextIndex: getIndex(response)
   }
 }
 
-const fetchWithBackoff =  backoff({ tries: 10 }, fetch)
+const fetchWithBackoff = backoff({ tries: 10 }, fetch)
 
 const monitor = uri => prefix => {
   let index = 0
