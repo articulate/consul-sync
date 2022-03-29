@@ -1,11 +1,14 @@
-const { expect } = require('chai')
-const spy = require('@articulate/spy')
+const chai = require('chai')
+const spies = require('chai-spies')
 
+chai.use(spies)
+
+const { expect } = chai
 const consul = require('./consul')
 
 describe('consul-sync', () => {
   before(done => {
-    console.error = spy()
+    chai.spy.on(console, 'info')
 
     require('..')({
       prefixes: [
@@ -19,8 +22,8 @@ describe('consul-sync', () => {
     setTimeout(done, 250)
   })
 
-  afterEach(() =>
-    console.error.reset()
+  after(() =>
+    chai.spy.restore(console)
   )
 
   it('syncs the Consul KV store to the process.env', () => {
@@ -50,18 +53,15 @@ describe('consul-sync', () => {
     )
   })
 
-  describe('when the connection to Consul is lost', () => {
+  describe('when the index is out of order', () => {
     beforeEach(function(done) {
       this.timeout(30000)
-      consul.disconnect()
-      setTimeout(() => {
-        consul.connect()
-        setTimeout(done, 5000)
-      }, 5000)
+      setTimeout(consul.reset, 250)
+      setTimeout(done, 5000)
     })
 
-    it('logs an error before retrying', () =>
-      expect(console.error.calls.length).to.be.above(0)
-    )
+    it('logs that order is out of sync', () => {
+      expect(console.info).to.have.been.called.with('Consul index out of sync, reset to 0')
+    })
   })
 })

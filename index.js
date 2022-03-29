@@ -12,18 +12,12 @@ const {
   map,
   mergeAll,
   path,
-  pipe,
   reduce,
 } = require('ramda')
 
 const BASE_WAIT = 10
 const CONSUL_WAIT = `${BASE_WAIT}m`
 const AXIOS_TIMEOUT = BASE_WAIT * 60 * 1000 + 10000 // 10m + 10s
-
-const logger = {
-  info: pipe(JSON.stringify, console.log),
-  error: pipe(JSON.stringify, console.error),
-}
 
 const schema = Joi.object({
   prefixes: Joi.array().single().items(Joi.string()).default([]),
@@ -90,19 +84,27 @@ const monitor = uri => prefix => {
       index = getNextIndex(previousIndex, nextIndex)
 
       if (hasIndexIncreased(previousIndex, nextIndex)) {
-        logger.info({
+        console.info('Consul syncing, env changed recieved', JSON.stringify({
           index,
           prefix,
           requestUrl,
           requestIndex: previousIndex,
           responseIndex: nextIndex,
-        }, 'Consul syncing. Env changed recieved')
+        }))
 
         const envVars = parseEnvs(data)
         push(null, { envVars, prefix })
+      } else {
+        console.info('Consul index out of sync, reset to 0', JSON.stringify({
+          previousIndex,
+          nextIndex
+        }))
       }
     } catch (error) {
-      logger.error({ error, info: { index } }, 'Consul syncing error')
+      console.error('Consul syncing error', JSON.stringify({
+        error,
+        info: { index }
+      }))
       index = 0
     }
 

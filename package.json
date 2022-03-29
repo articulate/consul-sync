@@ -31,12 +31,12 @@
     "ramda": "^0.25.0"
   },
   "devDependencies": {
-    "@articulate/spy": "^0.0.1",
-    "chai": "^4.1.2",
+    "chai": "^4.3.6",
+    "chai-spies": "^1.0.0",
     "coveralls": "^3.0.0",
     "eslint": "^7.0.0",
-    "mocha": "^4.0.1",
-    "nock": "^9.0.22",
+    "mocha": "^9.2.2",
+    "nock": "^13.2.4",
     "nyc": "^11.2.1"
   }
 }

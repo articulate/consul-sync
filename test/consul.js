@@ -84,8 +84,14 @@ afterEach(() =>
 
 exports.connect = mockConsul
 
-exports.disconnect = () => {
+const mockBadConsul = () =>
+  nock(uri)
+    .get(kvRegex)
+    .reply(200, [], { 'x-consul-index': 1 })
+
+exports.reset = () => {
   nock.cleanAll()
+  mockBadConsul()
 
   for (let key in waiting) {
     emitter.emit(key, false)
