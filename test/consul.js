@@ -16,7 +16,7 @@ const uri = 'http://consul.io'
 const emitter = new Emitter()
 
 const encode = val =>
-  new Buffer(val, 'utf8').toString('base64')
+  Buffer.from(val, 'utf8').toString('base64')
 
 const index = item =>
   assoc('ModifyIndex', Date.now(), item)

@@ -56,7 +56,7 @@ describe('consul-sync', () => {
   describe('when the index is out of order', () => {
     beforeEach(function(done) {
       this.timeout(30000)
-      setTimeout(consul.reset, 250)
+      setTimeout(consul.reset, 2500)
       setTimeout(done, 5000)
     })
 
