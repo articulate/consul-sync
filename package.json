@@ -18,24 +18,25 @@
     "lint": "eslint index.js test",
     "postversion": "git push --tags origin master",
     "preversion": "git checkout master",
-    "test": "mocha --reporter=dot",
+    "test": "mocha --reporter=dot --exit",
     "test:ci": "yarn run lint && yarn run test:coverage && yarn run coverage",
     "test:coverage": "nyc yarn run test"
   },
   "dependencies": {
-    "@articulate/funky": "^0.0.3",
-    "@articulate/gimme": "^0.0.5",
+    "@articulate/funky": "^2.0.0",
+    "axios": "^0.26.0",
     "debug": "^3.1.0",
+    "highland": "^2.13.5",
     "joi": "^11.3.4",
     "ramda": "^0.25.0"
   },
   "devDependencies": {
-    "@articulate/spy": "^0.0.1",
-    "chai": "^4.1.2",
+    "chai": "^4.3.6",
+    "chai-spies": "^1.0.0",
     "coveralls": "^3.0.0",
-    "eslint": "^4.8.0",
-    "mocha": "^4.0.1",
-    "nock": "^9.0.22",
+    "eslint": "^7.0.0",
+    "mocha": "^9.2.2",
+    "nock": "^13.2.4",
     "nyc": "^11.2.1"
   }
 }

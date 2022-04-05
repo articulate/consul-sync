@@ -16,7 +16,7 @@ const uri = 'http://consul.io'
 const emitter = new Emitter()
 
 const encode = val =>
-  new Buffer(val, 'utf8').toString('base64')
+  Buffer.from(val, 'utf8').toString('base64')
 
 const index = item =>
   assoc('ModifyIndex', Date.now(), item)
@@ -27,8 +27,14 @@ let KV = merge({}, init)
 let waiting = {}
 
 const getKey = curry((recurse, key) => {
-  if (!key) return [ 500, {} ]
-  const body = recurse === 'true' ? recurseKeys(key) : [ KV[key] ]
+  if (!key) {
+    return [ 500, {} ]
+  }
+
+  const body = recurse === 'true'
+    ? recurseKeys(key)
+    : [ KV[key] ]
+
   return body.length
     ? [ 200, body, lastIndex(body) ]
     : [ 404, { message: 'Not found' }, {} ]
@@ -52,8 +58,9 @@ const readKey = (uri, body, done) => {
 
   const respond = compose(partial(done, [ null ]), getKey(recurse))
 
-  if (!index) respond(key)
-  else {
+  if (!parseInt(index)) {
+    respond(key)
+  } else {
     waiting = assoc(key, true, waiting)
     emitter.once(key, respond)
   }
@@ -77,9 +84,19 @@ afterEach(() =>
 
 exports.connect = mockConsul
 
-exports.disconnect = () => {
+const mockBadConsul = () =>
+  nock(uri)
+    .get(kvRegex)
+    .reply(200, [], { 'x-consul-index': 1 })
+
+exports.reset = () => {
   nock.cleanAll()
-  for (let key in waiting) emitter.emit(key, false)
+  mockBadConsul()
+
+  for (let key in waiting) {
+    emitter.emit(key, false)
+  }
+
   waiting = {}
   emitter.removeAllListeners()
 }
