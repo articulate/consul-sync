@@ -9,7 +9,6 @@ Accepts an object of options described below:
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `prefixes` | `[String]` | `[]` | List of key prefixes to sync |
-| `retryAfter` | `Number` | `5000` | Delay between retries in ms |
 | `uri` | `String` | | Consul base uri (must include protocol) |
 
 Returns a `Promise` that rejects with an error if the options are invalid.
