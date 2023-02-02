@@ -11,11 +11,11 @@ describe('consul-sync', () => {
     chai.spy.on(console, 'info')
 
     require('..')({
-      prefixes: [
-        'globals/env_vars',
-        'products/not-found',
-        'services/my-app/env_vars'
-      ],
+      prefixes: {
+        '': 'globals/env_vars',
+        products: 'products/not-found',
+        'my-app': 'services/my-app/env_vars',
+      },
       uri: consul.uri
     })
 
@@ -27,7 +27,8 @@ describe('consul-sync', () => {
   )
 
   it('syncs the Consul KV store to the process.env', () => {
-    expect(process.env.COLOR).to.equal('red')
+    expect(process.env.COLOR).to.equal('blue')
+    expect(process.env.MY_APP_COLOR).to.equal('red')
     expect(process.env.SHA).to.equal('d2dd5de')
   })
 
@@ -49,7 +50,7 @@ describe('consul-sync', () => {
     })
 
     it('updates the process.env', () =>
-      expect(process.env.COLOR).to.equal('green')
+      expect(process.env.MY_APP_COLOR).to.equal('green')
     )
   })
 

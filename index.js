@@ -6,11 +6,9 @@ const debug = require('debug')('consul-sync')
 const Joi = require('joi')
 
 const {
-  append,
   assoc,
   composeP,
   map,
-  mergeAll,
   path,
   reduce,
 } = require('ramda')
@@ -20,12 +18,12 @@ const CONSUL_WAIT = `${BASE_WAIT}m`
 const AXIOS_TIMEOUT = BASE_WAIT * 60 * 1000 + 10000 // 10m + 10s
 
 const schema = Joi.object({
-  prefixes: Joi.array().single().items(Joi.string()).default([]),
-  uri: Joi.string().uri({ scheme: [ /https?/ ] }),
+  prefixes: [Joi.string(), Joi.object()],
+  uri: Joi.string().uri({ scheme: [/https?/] }),
 })
 
 const buildUrl = (uri, prefix) => `${uri}/v1/kv/${prefix}`
-const getIndex = path([ 'headers', 'x-consul-index' ])
+const getIndex = path(['headers', 'x-consul-index'])
 
 const parseEnv = (env, { Key, Value }) =>
   Value === null ? env : assoc(basename(Key), decode(Value), env)
@@ -33,7 +31,7 @@ const parseEnv = (env, { Key, Value }) =>
 const parseEnvs = reduce(parseEnv, {})
 const decode = val => Buffer.from(val, 'base64').toString('utf8')
 
-const setEnv = env => {
+const setEnv = (env) => {
   Object.assign(process.env, env)
   debug(env)
 }
@@ -69,7 +67,7 @@ const fetch = async (uri, prefix, index) => {
 
 const fetchWithBackoff = backoff({ tries: 10 }, fetch)
 
-const monitor = uri => prefix => {
+const monitor = uri => ([namespace, prefix]) => {
   let index = 0
 
   return _(async (push, next) => {
@@ -93,7 +91,7 @@ const monitor = uri => prefix => {
         }))
 
         const envVars = parseEnvs(data)
-        push(null, { envVars, prefix })
+        push(null, { envVars, namespace })
       } else {
         console.info('Consul index out of sync, reset to 0', JSON.stringify({
           previousIndex,
@@ -112,44 +110,29 @@ const monitor = uri => prefix => {
   })
 }
 
-const orderReducer = obj => (acc, key) => {
-  if (!obj[key]) {
-    return acc
-  }
-
-  return append(obj[key], acc)
+const buildEnv = (namespace, envCache) => {
+  const entries = Object.entries(envCache)
+  const objectMap = entries.reduce((map, [key,value]) =>
+    map.set(`${namespace}${key}`,value),
+  new Map())
+  return Object.fromEntries(objectMap.entries())
 }
 
-const orderVals = (orderedKeys, obj) =>
-  reduce(orderReducer(obj), [], orderedKeys)
-
-const initializeEnvsCache = () => {
-  const prefixedEnvs = {}
-
-  return (prefix, env) => {
-    prefixedEnvs[prefix] = env
-    return prefixedEnvs
-  }
+const updateEnv = ({ envVars, namespace }) => {
+  setEnv(buildEnv(namespace, envVars))
 }
 
-const buildEnv = (orderedPrefixes, envCache) => {
-  const orderedEnvs = orderVals(orderedPrefixes, envCache)
-  return mergeAll(orderedEnvs)
-}
+const cleanNamespace = (entries) => entries.map(
+  ([namespace, prefix]) =>
+    [`${namespace?.toUpperCase().replaceAll('-', '_') ?? ''}${namespace ? '_' : ''}`, prefix]
+)
 
-const updateEnv = prefixes => {
-  const updateEnvCache = initializeEnvsCache()
+const consulSync = ({ prefixes, uri }) => {
+  const targets = typeof prefixes === 'string' ? [['', prefixes]] : Object.entries(prefixes)
 
-  return ({ prefix, envVars }) => {
-    const envCache = updateEnvCache(prefix, envVars)
-    setEnv(buildEnv(prefixes, envCache))
-  }
-}
-
-const consulSync = ({ prefixes, uri }) =>
-  _(map(monitor(uri), prefixes))
+  return _(map(monitor(uri), cleanNamespace(targets)))
     .merge()
-    .each(updateEnv(prefixes))
+    .each(updateEnv)
+}
 
 module.exports = composeP(consulSync, validate(schema))
-
