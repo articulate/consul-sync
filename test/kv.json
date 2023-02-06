@@ -18,5 +18,13 @@
   {
     "Key": "services/my-app/env_vars/COLOR",
     "Value": "cmVk"
+  },
+  {
+    "Key": "services/another-app/env_vars/",
+    "Value": null
+  },
+  {
+    "Key": "services/another-app/env_vars/COLOR",
+    "Value": "cHVycGxl"
   }
 ]
