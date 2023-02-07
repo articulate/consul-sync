@@ -2,18 +2,9 @@ const _ = require('highland')
 const { basename } = require('path')
 const { backoff, validate } = require('@articulate/funky')
 const axios = require('axios')
-const debug = require('debug')('consul-sync')
 const Joi = require('joi')
+const R = require('ramda')
 
-const {
-  append,
-  assoc,
-  composeP,
-  map,
-  mergeAll,
-  path,
-  reduce,
-} = require('ramda')
 
 const BASE_WAIT = 10
 const CONSUL_WAIT = `${BASE_WAIT}m`
@@ -26,18 +17,13 @@ const schema = Joi.object({
 })
 
 const buildUrl = (uri, prefix) => `${uri}/v1/kv/${prefix}`
-const getIndex = path([ 'headers', 'x-consul-index' ])
+const getIndex = R.path([ 'headers', 'x-consul-index' ])
 
 const parseEnv = (env, { Key, Value }) =>
-  Value === null ? env : assoc(basename(Key), decode(Value), env)
+  Value === null ? env : R.assoc(basename(Key), decode(Value), env)
 
-const parseEnvs = reduce(parseEnv, {})
+const parseEnvs = R.reduce(parseEnv, {})
 const decode = val => Buffer.from(val, 'base64').toString('utf8')
-
-const setEnv = env => {
-  Object.assign(process.env, env)
-  debug(env)
-}
 
 const getNextIndex = (previousIndex, nextIndex) =>
   parseInt(previousIndex) > parseInt(nextIndex) ? 0 : nextIndex
@@ -118,11 +104,11 @@ const orderReducer = obj => (acc, key) => {
     return acc
   }
 
-  return append(obj[key], acc)
+  return R.append(obj[key], acc)
 }
 
 const orderVals = (orderedKeys, obj) =>
-  reduce(orderReducer(obj), [], orderedKeys)
+  R.reduce(orderReducer(obj), [], orderedKeys)
 
 const initializeEnvsCache = () => {
   const prefixedEnvs = {}
@@ -139,7 +125,7 @@ const buildEnv = ({
   envCache,
 }) => Object.fromEntries(
   Object.entries(
-    mergeAll(orderVals(orderedPrefixes, envCache))
+    R.mergeAll(orderVals(orderedPrefixes, envCache))
   ).map(([key, value]) => [`${namespace}${key}`, value])
 )
 
@@ -148,14 +134,13 @@ const updateEnv = ({prefixes, namespace}) => {
 
   return ({ prefix, envVars }) => {
     const envCache = updateEnvCache(prefix, envVars)
-    const env = buildEnv({namespace, prefixes, envCache})
-    setEnv(env)
+    return buildEnv({namespace, prefixes, envCache})
   }
 }
 
 const consulSync = ({ namespace, prefixes, uri }) =>
-  _(map(monitor(uri), prefixes))
+  _(R.map(monitor(uri), prefixes))
     .merge()
-    .each(updateEnv({prefixes, namespace}))
+    .map(updateEnv({prefixes, namespace}))
 
-module.exports = composeP(consulSync, validate(schema))
+module.exports = R.composeP(consulSync, validate(schema))

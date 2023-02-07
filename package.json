@@ -28,6 +28,7 @@
     "debug": "^3.1.0",
     "highland": "^2.13.5",
     "joi": "^11.3.4",
+    "node-cleanup": "^2.1.2",
     "ramda": "^0.25.0"
   },
   "devDependencies": {

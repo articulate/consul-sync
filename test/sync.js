@@ -8,83 +8,69 @@ chai.use(spies)
 
 describe('consul-sync', () => {
   context('basic sync', () => {
+    let getConfig
+
     beforeEach(async () => {
-      const syncs = require('..')({
+      getConfig = await require('..')({
         prefixes: 'globals/env_vars',
         uri: consul.uri
       })
-
-      await Promise.all(Object.values(syncs))
     })
   
-    beforeEach(waitUntil(() => Boolean(process.env.COLOR)))
-    
-    afterEach(() => {
-      delete process.env.COLOR
-      delete process.env.SHA
+    beforeEach(waitUntil(() => Boolean(getConfig('COLOR'))))
+  
+    it('syncs the COLOR from consul', () => {
+      chai.expect(getConfig('COLOR')).to.equal('blue')
     })
   
-    it('syncs the COLOR to the process.env', () => {
-      chai.expect(process.env.COLOR).to.equal('blue')
-    })
-  
-    it('syncs the SHA to the process.env', () => {
-      chai.expect(process.env.SHA).to.equal('d2dd5de')
+    it('syncs the SHA from consul', () => {
+      chai.expect(getConfig('SHA')).to.equal('d2dd5de')
     })
   })
 
   context('handle new variables', () => {
+    let getConfig
+
     beforeEach(async () => {
-      const syncs = require('..')({
+      getConfig = await require('..')({
         prefixes: 'globals/env_vars',
         uri: consul.uri
       })
-
-      await Promise.all(Object.values(syncs))
     })
   
     beforeEach(() => consul.update('globals/env_vars/FOO', 'bar'))
 
-    beforeEach(waitUntil(() => Boolean(process.env.FOO)))
-    
-    afterEach(() => {
-      delete process.env.COLOR
-      delete process.env.SHA
-      delete process.env.FOO
-    })
+    beforeEach(waitUntil(() => getConfig('FOO')))
 
-    it('updates the process.env', () =>
-      chai.expect(process.env.FOO).to.equal('bar')
+    it('adds the new key', () =>
+      chai.expect(getConfig('FOO')).to.equal('bar')
     )
   })
 
   context('handle updates to variables', () => {
+    let getConfig
+
     beforeEach(async () => {
-      const syncs = require('..')({
+      getConfig = await require('..')({
         prefixes: 'globals/env_vars',
         uri: consul.uri
       })
-
-      await Promise.all(Object.values(syncs))
     })
   
     beforeEach(() => consul.update('globals/env_vars/COLOR', 'green'))
 
-    beforeEach(waitUntil(() => process.env.COLOR && process.env.COLOR !== 'blue'))
-    
-    afterEach(() => {
-      delete process.env.COLOR
-      delete process.env.SHA
-    })
+    beforeEach(waitUntil(() => getConfig('COLOR') && getConfig('COLOR') !== 'blue'))
 
-    it('updates the process.env', () =>
-      chai.expect(process.env.COLOR).to.equal('green')
+    it('updates the current COLOR', () =>
+      chai.expect(getConfig('COLOR')).to.equal('green')
     )
   })
 
-  context('handle overriding variables', () => {    
+  context('handle overriding variables', () => {  
+    let getConfig
+
     beforeEach(async () => {
-      const syncs = require('..')({
+      getConfig = await require('..')({
         prefixes: [
           'globals/env_vars',
           'products/not-found',
@@ -92,25 +78,20 @@ describe('consul-sync', () => {
         ],
         uri: consul.uri
       })
-
-      await Promise.all(Object.values(syncs))
     })
   
-    beforeEach(waitUntil(() => process.env.COLOR && process.env.COLOR !== 'blue'))
-    
-    afterEach(() => {
-      delete process.env.COLOR
-      delete process.env.SHA
-    })
+    beforeEach(waitUntil(() => getConfig('COLOR') && getConfig('COLOR') !== 'blue'))
 
-    it('updates the process.env', () =>
-      chai.expect(process.env.COLOR).to.equal('red')
+    it('overrides the current COLOR with a higher priority prefix', () =>
+      chai.expect(getConfig('COLOR')).to.equal('red')
     )
   })
 
   context('when there are namespaced keys', () => {
+    let getConfig
+
     beforeEach(async () => {
-      const syncs = require('..')({
+      getConfig = await require('..')({
         prefixes: {
           '': [
             'globals/env_vars',
@@ -121,52 +102,16 @@ describe('consul-sync', () => {
         },
         uri: consul.uri
       })
-
-      await Promise.all(Object.values(syncs))
     })
     
-    beforeEach(waitUntil(() => Boolean(process.env.COLOR && process.env.THING_COLOR)))
+    beforeEach(waitUntil(() => Boolean(getConfig('COLOR') && getConfig('THING_COLOR'))))
 
-    afterEach(() => {
-      delete process.env.COLOR
-      delete process.env.SHA
-      delete process.env.THING_COLOR
-    })
-
-    it(`loads the namespaced color`, () => {
-      chai.expect(process.env.THING_COLOR).to.equal('purple')
+    it(`loads the namespaced COLOR`, () => {
+      chai.expect(getConfig('THING_COLOR')).to.equal('purple')
     })
 
     it(`doesn't override the current COLOR`, () => {
-      chai.expect(process.env.COLOR).to.equal('red')
-    })
-  })
-
-  // this is a flaky test. not certain on how to make it more reliable
-  context.skip('notify of index out of order', () => {
-    beforeEach(async () => {
-      const syncs = require('..')({
-        prefixes: 'globals/env_vars',
-        uri: consul.uri
-      })
-
-      await Promise.all(Object.values(syncs))
-    })
-    
-    beforeEach(waitUntil(() => Boolean(process.env.COLOR)))
-    beforeEach(async () => {
-      chai.spy.on(console, 'info')
-      consul.reset()
-      await waitUntil(() => console.info.__spy.called)()
-    })
-
-    afterEach(() => {
-      delete process.env.COLOR
-      delete process.env.SHA
-    })
-
-    it('updates the process.env', () => {
-      chai.expect(console.info).to.have.been.called.with('Consul index out of sync, reset to 0')
+      chai.expect(getConfig('COLOR')).to.equal('red')
     })
   })
 })
